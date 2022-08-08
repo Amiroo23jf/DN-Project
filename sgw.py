@@ -9,8 +9,13 @@ class SGW():
         self.host = "127.0.0.1"
         self.port = port
         self.enb_id_port_dict = dict()
-        self.lock_dict = {"enb_id_port_dict" : threading.Lock()}
-        logging.debug("S-GW with port number:("+ str(port) +") is successfully created.")
+        self.lock_dict = {"enb_id_port_dict" : threading.Lock(),}
+
+        # simulation timing configurations
+        self.sim_started = False
+        self.start_time = None
+
+        logging.debug("SGW with port number:("+ str(port) +") is successfully created.")
 
     def run_server(self, max_clients=50):
         # creating a socket and listening for connections
@@ -52,7 +57,7 @@ class SGW():
             if (data_dict["type"] == 1):
                 client_entity = "enb"
                 client_uid = data_dict["message"]
-                logging.info("SGW: eNodeB with uid:(" + str(client_uid) + ") is connected from port:(" + str(client_port) + ")")
+                logging.info("SGW: eNodeB(" + str(client_uid) + ") is connected from port:(" + str(client_port) + ")")
                 self.lock_dict["enb_id_port_dict"].acquire()
                 self.enb_id_port_dict[client_uid] = client_port
                 self.lock_dict["enb_id_port_dict"].release()
@@ -73,3 +78,9 @@ class SGW():
             
         while True:
             pass
+
+    def start_simulation(self, start_time):
+        '''This method is called by LTESimulator when the simulation is started by giving the start time of 
+        the simulation and setting the sim_started parameter to True'''
+        self.start_time = start_time
+        self.sim_started = True
