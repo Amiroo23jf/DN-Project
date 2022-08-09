@@ -53,18 +53,22 @@ class SGW():
 
             # decoding the data
             data_decoded = data.decode("utf-8")
-            data_dict = json.loads(data_decoded)
-            if (data_dict["type"] == 1):
-                client_entity = "enb"
-                client_uid = data_dict["message"]
-                logging.info("SGW: eNodeB(" + str(client_uid) + ") is connected from port:(" + str(client_port) + ")")
-                self.lock_dict["enb_id_port_dict"].acquire()
-                self.enb_id_port_dict[client_uid] = client_port
-                self.lock_dict["enb_id_port_dict"].release()
-            
+            data_recieved = data.decode('utf-8').split("\END_OF_MSG")
+            for data_decoded in data_recieved[:-1]:
+                try:
+                    if (len(data_decoded)!=0):
+                        data_dict = json.loads(data_decoded)
+                except:
+                    logging.warning("SGW: Data recieved from "+client_entity+"("+str(client_uid)+") is corrupted")
+                if (data_dict["type"] == 1):
+                    client_entity = "ENB"
+                    client_uid = data_dict["message"]
+                    logging.info("SGW: eNodeB(" + str(client_uid) + ") is connected from port:(" + str(client_port) + ")")
+                    self.lock_dict["enb_id_port_dict"].acquire()
+                    self.enb_id_port_dict[client_uid] = client_port
+                    self.lock_dict["enb_id_port_dict"].release()
 
-
-            # send a response to the client
+                     # send a response to the client
             
     def connect_to_mme(self, mme_port):
         '''Establishing the connection from SGW to MME server on the given port'''

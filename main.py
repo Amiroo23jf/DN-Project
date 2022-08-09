@@ -19,15 +19,24 @@ class LTESimulator():
         self.ports = dict()
         self.enb_list = list()
         self.ue_list = list()
+        self.mme_timeout = self.find_timeout(users_info)
         return
     
+    def find_timeout(self, users_info):
+        min_time = float("inf")
+        for user in users_info:
+            user_interval = float(user["interval"][:-1])
+            if (user_interval < min_time):
+                min_time = user_interval
+        return min_time/4
+
     def topology_configuration(self):
         '''This method configures the topology by bringing up the MME and SGW servers and connecting eNodeBs to them'''
         # creating the MME
         # setting a random port number
         port = random.randint(10000,65000)
         self.ports["mme"] = port
-        mme_entity = MME(port)
+        mme_entity = MME(port, self.mme_timeout)
         mme_server_thread = threading.Thread(target=mme_entity.run_server, args=())
         mme_server_thread.start()
         self.mme = mme_entity
@@ -121,9 +130,15 @@ class LTESimulator():
             ue_entity.start_simulation(self.start_time)
 
         logging.debug("Simulation is started")
-users_info = [{"uid":12252, "interval":"2s", "locations":[(1,5), (2,5), (6,2), (8,1)]}, 
-              {"uid":76295, "interval":"1s", "locations":[(1,8), (9,5), (3,2), (8,4)]},
-              {"uid":12252, "interval":"2s", "locations":[(9,6), (9,1), (3,6), (2,1)]}]
-lte_simulator = LTESimulator([(1,1),(2,2),(3,3)], users_info, logging_level=logging.DEBUG)
+users_info = [{"uid":12252, "interval":"4s", "locations":[(3,0), (3,3), (2.5,0), (0,2.5)]}, 
+              {"uid":76295, "interval":"4.2s", "locations":[(0,1), (1,0), (2.5,2.5), (8,5)]},
+              {"uid":7295, "interval":"5.3s", "locations":[(0,0), (5,0), (2,3), (-1,4)]}]
+
+# users_info = [{"uid":12252, "interval":"5s", "locations":[(1,5)]}, 
+#               {"uid":76295, "interval":"5s", "locations":[(1,8)]},
+#               {"uid":12252, "interval":"5s", "locations":[(9,6)]}]
+lte_simulator = LTESimulator([(2,0),(2,2),(0,2)], users_info, logging_level=logging.INFO)
 lte_simulator.topology_configuration()
+time.sleep(2)
+logging.info("------------------Starting the simulation----------------")
 lte_simulator.start_simulation()
