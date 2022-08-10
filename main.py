@@ -17,8 +17,8 @@ class LTESimulator():
         self.enb_locations = enb_locations
         self.users_info = users_info
         self.ports = dict()
-        self.enb_list = list()
-        self.ue_list = list()
+        self.enb_dict = dict()
+        self.ue_dict = dict()
         self.mme_timeout = self.find_timeout(users_info)
         return
     
@@ -61,8 +61,8 @@ class LTESimulator():
         ## just a initial uid
         uid = 5000 
 
-        # list containing the tuples of enb uids and ports
-        enb_signaling_ports = []
+        # dictionary mapping enb uids to ports
+        enb_ports = dict()
 
         # lists for holding the threads
         enb_sgw_connections = []
@@ -74,7 +74,7 @@ class LTESimulator():
         for i in range(len(self.enb_locations)):
             enb_loc = self.enb_locations[i]
             enb = eNodeB(enb_loc, uid)
-            self.enb_list.append(enb)
+            self.enb_dict[uid] = enb
             # connecting the eNodeB to SGW server
             enb_sgw_connections.append(threading.Thread(target=enb.connect_to_sgw, args=(self.ports["sgw"],)))
             enb_sgw_connections[i].start()
@@ -89,7 +89,7 @@ class LTESimulator():
             enb_signaling_servers.append(threading.Thread(target=enb.run_server, args=(self.ports["enb"+str(uid)+"-signaling"],True)))
             enb_signaling_servers[i].start()
             
-            enb_signaling_ports.append(port) # adding the signaling port in order to be used by UEs
+            enb_ports[uid] = {"signaling":port} # adding the signaling port in order to be used by UEs
 
 
             # creating data server
@@ -97,6 +97,9 @@ class LTESimulator():
             self.ports["enb"+str(uid)+"-data"] = port
             enb_data_servers.append(threading.Thread(target=enb.run_server, args=(self.ports["enb"+str(uid)+"-data"],False)))
             enb_data_servers[i].start()
+
+            enb_ports[uid]["data"] = port
+
             
             uid = uid + 1
 
@@ -105,9 +108,10 @@ class LTESimulator():
         # creating the users 
         for i in range(len(self.users_info)):
             user_info = self.users_info[i]
-            user = UE(user_info)
-            self.ue_list.append(user)
-            user_enb_signalings.append(threading.Thread(target=user.connect_enb_signalings, args=(enb_signaling_ports, )))
+            user = UE(user_info, enb_ports)
+            uid = int(user_info["uid"])
+            self.ue_dict[uid] = user
+            user_enb_signalings.append(threading.Thread(target=user.connect_enb_signalings, args=()))
             user_enb_signalings[i].start()
         
         self.enb_sgw_connections = enb_sgw_connections
@@ -116,29 +120,57 @@ class LTESimulator():
         self.enb_data_servers = enb_data_servers  
         self.user_enb_signalings = user_enb_signalings 
         
-    def start_simulation(self):
+    def start_simulation(self, scenarios):
         '''Starting the simulation and initializing the timing on each entity'''
         self.start_time = time.time()
         
         self.mme.start_simulation(self.start_time)
         self.sgw.start_simulation(self.start_time)
 
-        for enb in self.enb_list:
+        for enb in self.enb_dict.values():
             enb.start_simulation(self.start_time)
         
-        for ue_entity in self.ue_list:
+        for ue_entity in self.ue_dict.values():
             ue_entity.start_simulation(self.start_time)
 
-        logging.debug("Simulation is started")
-users_info = [{"uid":12252, "interval":"4s", "locations":[(3,0), (3,3), (2.5,0), (0,2.5)]}, 
-              {"uid":76295, "interval":"4.2s", "locations":[(0,1), (1,0), (2.5,2.5), (8,5)]},
-              {"uid":7295, "interval":"5.3s", "locations":[(0,0), (5,0), (2,3), (-1,4)]}]
+        # running the senarios
+        scenarios_queue = list(map(lambda x: {"source": int(x["source"]), "dst": int(x["dst"]), "when": float(x["when"][:-1]),
+                                            "content": x["content"]}, scenarios))
+        scenarios_queue.sort(key=lambda x: x["when"])
+        
+        while True:
+            if (len(scenarios_queue) ==  0 ):
+                break
+            scenario = scenarios_queue[0]
+            scenario_time = scenario["when"]
+            if (time.time() >= scenario_time + self.start_time):
+                source = scenario["source"]
+                dst = scenario["dst"]
+                when = scenario["when"]
+                content = scenario["content"]
+                source_user = self.ue_dict[source]
+                send_data_thread = threading.Thread(target=source_user.send_data, args=(dst, when, content))
+                send_data_thread.start()
+                scenarios_queue.pop(0)
+            
+                
 
+
+
+        logging.debug("Simulation is started")
+users_info = [{"uid":12252, "interval":"20s", "locations":[(3,0), (3,3), (2.5,0), (0,2.5)]}, 
+              {"uid":76295, "interval":"18s", "locations":[(0,1), (1,0), (2.5,2.5), (8,5)]},
+              {"uid":7295, "interval":"15s", "locations":[(0,0), (5,0), (2,3), (-1,4)]}]
+
+user1_content = "Hello user 76295, my user id is 12252. Do you want to be my friend?"
+user2_content = "Hello user 7295, my user id is 76295. I hate you."
+scenarios = [{"source": "12252", "dst": "76295", "when": "3.5s", "content": user1_content }, 
+             {"source": "76295", "dst": "7295", "when": "2.5s", "content": user2_content }]
 # users_info = [{"uid":12252, "interval":"5s", "locations":[(1,5)]}, 
 #               {"uid":76295, "interval":"5s", "locations":[(1,8)]},
 #               {"uid":12252, "interval":"5s", "locations":[(9,6)]}]
-lte_simulator = LTESimulator([(2,0),(2,2),(0,2)], users_info, logging_level=logging.INFO)
+lte_simulator = LTESimulator([(2,0),(2,2),(0,2)], users_info, logging_level=logging.CRITICAL)
 lte_simulator.topology_configuration()
 time.sleep(2)
 logging.info("------------------Starting the simulation----------------")
-lte_simulator.start_simulation()
+lte_simulator.start_simulation(scenarios)

@@ -87,9 +87,22 @@ class MME():
                     # send the new info to the enb assignment method
                     self.enb_assignment(client_uid, user_uid, user_time, distance)
 
+                elif (data_dict["type"] == 15):
+                    # check or set the entity of the client
+                    if (client_entity == "ENB"):
+                        pass # do nothing (however this case never happens)
+                    elif(client_entity == "Unknown"):
+                        client_entity == "SGW"
+                    
+                    if (client_entity == "SGW"):
+                        dst = data_dict["type"]["dst"]
+                        self.lock_dict["ue_enb_db"].acquire()
+                        target_enb = self.ue_enb_db[dst].copy()
+                        self.lock_dict["ue_enb_db"].release()
 
-            
-            
+                        # sending a change route message 
+                        self.change_route(dst, target_enb)
+
     def connect_to_sgw(self, sgw_port):
         '''Establishing the connection from MME to SGW on the given port'''
         HOST = "127.0.0.1"
@@ -97,11 +110,16 @@ class MME():
         connection_status = s.connect_ex((HOST, sgw_port))
         while (connection_status != 0):
             connection_status = s.connect_ex((HOST, sgw_port))
-
+        socket_lock = threading.Lock()
+        self.sgw_socket = {"socket": s, "lock": socket_lock}
         logging.info("MME: Connection with SGW is established on port:(%d)", sgw_port)
 
-        while True :
-            pass
+    def send_to_sgw(self, msg):
+        '''Sends the given message to the SGW server'''
+        msg_json = json.dumps(msg) + "\END_OF_MSG"
+        self.sgw_socket["lock"].acquire()
+        self.sgw_socket["socket"].send(msg_json.encode("utf-8"))
+        self.sgw_socket["lock"].release()
 
     def start_simulation(self, start_time):
         '''This method is called by LTESimulator when the simulation is started by giving the start time of 
@@ -154,6 +172,7 @@ class MME():
             self.lock_dict["ue_enb_db"].release()
             msg = {"type": 6, "message": {"uid":user_uid, "has_previous": False}}
             self.send_to_enb(best_enb_uid, msg)
+            self.change_route(user_uid, best_enb_uid)
         elif (best_enb_uid != self.ue_enb_db[user_uid]):
             self.lock_dict["ue_enb_db"].acquire()
             last_enb_uid = self.ue_enb_db[user_uid]
@@ -165,6 +184,15 @@ class MME():
             deregistration_msg = {"type": 8, "message": {"uid":user_uid, "next_enb": best_enb_uid}}
             self.send_to_enb(last_enb_uid, deregistration_msg)
             self.send_to_enb(best_enb_uid, msg)
+            self.change_route(user_uid, best_enb_uid)
+        
+    def change_route(self, user_uid, enb_uid):
+        '''Sends a change route message to the SGW server'''
+        msg = {"type": 14, "message": {"dst": user_uid, "enb_uid": enb_uid}}
+        self.send_to_sgw(msg)
+        logging.info("MME: Sending the change route message: UE("+str(user_uid)+") --> ENB("+str(enb_uid)+")")
+        
+        
 
         
         
