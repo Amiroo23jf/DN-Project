@@ -54,7 +54,7 @@ class MME():
         client_port = addr[1]
         while (True):
             
-            # data recieved from client
+            # data received from client
             data = c.recv(2048)
             if not data:
                 # the connection was closed
@@ -62,13 +62,13 @@ class MME():
 
             # decoding the data
             data_decoded = data.decode("utf-8")
-            data_recieved = data.decode('utf-8').split("\END_OF_MSG")
-            for data_decoded in data_recieved[:-1]:
+            data_received = data.decode('utf-8').split("\END_OF_MSG")
+            for data_decoded in data_received[:-1]:
                 try:
                     if (len(data_decoded)!=0):
                         data_dict = json.loads(data_decoded)
                 except:
-                    logging.warning("MME: Data recieved from "+client_entity+"("+str(client_uid)+") is corrupted")
+                    logging.warning("MME: Data received from "+client_entity+"("+str(client_uid)+") is corrupted")
                 if (data_dict["type"] == 2):
                     client_entity = "ENB"
                     client_uid = data_dict["message"]

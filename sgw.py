@@ -50,20 +50,20 @@ class SGW():
         socket_lock = threading.Lock()
         while (True):
             
-            # data recieved from client
+            # data received from client
             data = c.recv(1024)
             if not data:
                 # the connection was closed
                 break
 
             # decoding the data
-            data_recieved = data.decode('utf-8').split("\END_OF_MSG")
-            for data_decoded in data_recieved[:-1]:
+            data_received = data.decode('utf-8').split("\END_OF_MSG")
+            for data_decoded in data_received[:-1]:
                 try:
                     if (len(data_decoded)!=0):
                         data_dict = json.loads(data_decoded)
                 except:
-                    logging.warning("SGW: Data recieved from "+client_entity+"("+str(client_uid)+") is corrupted")
+                    logging.warning("SGW: Data received from "+client_entity+"("+str(client_uid)+") is corrupted")
                 if (data_dict["type"] == 1):
                     client_entity = "ENB"
                     client_uid = data_dict["message"]
@@ -77,7 +77,18 @@ class SGW():
                     # session creation message
                     source_uid = data_dict["message"]["source"]
                     dst_uid = data_dict["message"]["dst"]
-                    logging.critical("SGW: Session Creation is recieved from UE("+str(source_uid)+")")
+                    logging.info("SGW: Session Creation is received from UE("+str(source_uid)+")")
+                    target_enb = self.route_packet(dst_uid)
+
+                    # send to target enodeb
+                    msg = data_dict.copy()
+                    self.send_to_enb(target_enb, msg)
+                
+                elif (data_dict["type"] == 10):
+                    # session creation ACK
+                    source_uid = data_dict["message"]["source"]
+                    dst_uid = data_dict["message"]["dst"]
+                    logging.info("SGW: Session Creation ACK is received from UE("+str(source_uid)+")")
                     target_enb = self.route_packet(dst_uid)
 
                     # send to target enodeb
@@ -133,7 +144,7 @@ class SGW():
                 break
             else:  
                 self.routing_table["lock"].release()
-                time.sleep(0.1)
+                time.sleep(0.05)
         return target_enb
 
 

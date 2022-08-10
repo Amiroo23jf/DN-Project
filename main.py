@@ -158,14 +158,14 @@ class LTESimulator():
 
 
         logging.debug("Simulation is started")
-users_info = [{"uid":12252, "interval":"20s", "locations":[(3,0), (3,3), (2.5,0), (0,2.5)]}, 
-              {"uid":76295, "interval":"18s", "locations":[(0,1), (1,0), (2.5,2.5), (8,5)]},
-              {"uid":7295, "interval":"15s", "locations":[(0,0), (5,0), (2,3), (-1,4)]}]
+users_info = [{"uid":12252, "interval":"5s", "locations":[(3,0), (3,3), (2.5,0), (0,2.5)]}, 
+              {"uid":76295, "interval":"3s", "locations":[(0,1), (1,0), (2.5,2.5), (8,5)]},
+              {"uid":7295, "interval":"4s", "locations":[(0,0), (5,0), (2,3), (-1,4)]}]
 
 user1_content = "Hello user 76295, my user id is 12252. Do you want to be my friend?"
 user2_content = "Hello user 7295, my user id is 76295. I hate you."
-scenarios = [{"source": "12252", "dst": "76295", "when": "3.5s", "content": user1_content }, 
-             {"source": "76295", "dst": "7295", "when": "2.5s", "content": user2_content }]
+scenarios = [{"source": "12252", "dst": "76295", "when": "8s", "content": user1_content }, 
+             {"source": "76295", "dst": "7295", "when": "12s", "content": user2_content }]
 # users_info = [{"uid":12252, "interval":"5s", "locations":[(1,5)]}, 
 #               {"uid":76295, "interval":"5s", "locations":[(1,8)]},
 #               {"uid":12252, "interval":"5s", "locations":[(9,6)]}]
