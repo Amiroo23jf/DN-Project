@@ -101,6 +101,35 @@ class SGW():
                     enb_uid = data_dict["message"]["enb_uid"]
                     logging.debug("SGW: Changing route: UE("+str(dst)+") --> ENB("+str(enb_uid)+")")
                     self.change_route(dst, enb_uid)
+
+                elif (data_dict["type"] == 16):
+                    # forward the message to target enodeb
+                    dst = data_dict["message"]["dst"]
+                    source = data_dict["message"]["source"]
+                    chunk_num = data_dict["message"]["chunk_num"]
+                    logging.info("SGW: The chunk("+str(chunk_num)+") of message from UE("+str(source)+") to UE("+str(dst)+") is received")
+                    target_enb = self.route_packet(dst)
+
+                    # send to target enodeb
+                    msg = data_dict.copy()
+                    self.send_to_enb(target_enb, msg)
+
+                elif (data_dict["type"] == 11):
+                    # send me buffered data message
+                    dst_enb = data_dict["message"]["dst_enb"]
+                    
+                    msg = data_dict.copy()
+                    self.send_to_enb(dst_enb, msg)
+                
+                elif ((data_dict["type"] == 12) or (data_dict["type"] == 13)):
+                    # buffered data message
+                    dst_enb = data_dict["message"]["dst"]
+
+                    msg = data_dict.copy()
+                    self.send_to_enb(dst_enb, msg)
+
+                
+
             
     def connect_to_mme(self, mme_port):
         '''Establishing the connection from SGW to MME server on the given port'''
@@ -144,7 +173,6 @@ class SGW():
                 break
             else:  
                 self.routing_table["lock"].release()
-                time.sleep(0.05)
         return target_enb
 
 

@@ -1,0 +1,3 @@
+In this case, First the previous eNodeB finds out that it should be disconnected and the next eNodeB is connected and asks for the buffered data. 
+Then the buffered data is sent (which is empty) and afterwards, the handover completion message is sent. However, the SGW still does not know that the 
+handover is taken and because of this it sends some of the data to the previous eNodeB but this eNodeB drops the packets and because of this some parts of data is not received by the UE.

@@ -6,6 +6,7 @@ import threading
 import logging
 import random
 import time
+import json
 
 class LTESimulator():
     def __init__(self, enb_locations, users_info, logging_level=logging.INFO):
@@ -135,7 +136,7 @@ class LTESimulator():
 
         # running the senarios
         scenarios_queue = list(map(lambda x: {"source": int(x["source"]), "dst": int(x["dst"]), "when": float(x["when"][:-1]),
-                                            "content": x["content"]}, scenarios))
+                                            "content": x["content"], "numberOfChunks": x["numberOfChunks"]}, scenarios))
         scenarios_queue.sort(key=lambda x: x["when"])
         
         while True:
@@ -148,8 +149,9 @@ class LTESimulator():
                 dst = scenario["dst"]
                 when = scenario["when"]
                 content = scenario["content"]
+                chunk_num = scenario["numberOfChunks"]
                 source_user = self.ue_dict[source]
-                send_data_thread = threading.Thread(target=source_user.send_data, args=(dst, when, content))
+                send_data_thread = threading.Thread(target=source_user.send_data, args=(dst, when, content, chunk_num))
                 send_data_thread.start()
                 scenarios_queue.pop(0)
             
@@ -158,19 +160,48 @@ class LTESimulator():
 
 
         logging.debug("Simulation is started")
-users_info = [{"uid":12252, "interval":"5s", "locations":[(3,0), (3,3), (2.5,0), (0,2.5)]}, 
-              {"uid":76295, "interval":"3s", "locations":[(0,1), (1,0), (2.5,2.5), (8,5)]},
-              {"uid":7295, "interval":"4s", "locations":[(0,0), (5,0), (2,3), (-1,4)]}]
+with open("user_info_many_scenarios.json") as file:
+    users_info_file = json.load(file)
+users_info = []
+for user in users_info_file["users"]:
+    users_info.append(users_info_file[user])
 
-user1_content = "Hello user 76295, my user id is 12252. Do you want to be my friend?"
-user2_content = "Hello user 7295, my user id is 76295. I hate you."
-scenarios = [{"source": "12252", "dst": "76295", "when": "8s", "content": user1_content }, 
-             {"source": "76295", "dst": "7295", "when": "12s", "content": user2_content }]
+with open("scenarios_many_scenarios.json") as file:
+    scenarios_file = json.load(file)
+scenarios = []
+for scenario in scenarios_file["scenarios"]:
+    scenarios.append(scenarios_file[scenario])
+
+# scenarios = [{ "source": "123456",
+#         "dst": "123457",
+#         "when": "4.3s",
+#         "content": "this is a message to user 123457: what is this no no no this message should be delivered without error because your system should be perfect",
+#         "numberOfChunks": 11}, 
+#              { "source": "123457",
+#         "dst": "123456",
+#         "when": "3.9s",
+#         "content": "hi how are you user 123456, im fine thank you what about you oh im doing very well man ha ha ha ha ha",
+#         "numberOfChunks": 8},
+#              { "source": "123456",
+#         "dst": "123458",
+#         "when": "10s",
+#         "content": "this message is a little bit shorter but it works as well hah",
+#         "numberOfChunks": 5}]
+
+# users_info = [{"uid":12252, "interval":"15s", "locations":[(3,0), (3,3), (2.5,0), (0,2.5)]}, 
+#               {"uid":76295, "interval":"15s", "locations":[(0,1), (1,0), (2.5,2.5), (8,5)]},
+#               {"uid":7295, "interval":"15s", "locations":[(0,0), (5,0), (2,3), (-1,4)]}]
+
+# user1_content = "Hello user 76295, my user id is 12252. Do you want to be my friend?"
+# user2_content = "Hello user 7295, my user id is 76295. I hate you."
+# scenarios = [{"source": "12252", "dst": "76295", "when": "8s", "content": user1_content, "numberOfChunks":5}, 
+#              {"source": "76295", "dst": "7295", "when": "12s", "content": user2_content, "numberOfChunks":3}, 
+#              {"source": "7295", "dst": "12252", "when": "17s", "content": user2_content, "numberOfChunks":3}]
 # users_info = [{"uid":12252, "interval":"5s", "locations":[(1,5)]}, 
 #               {"uid":76295, "interval":"5s", "locations":[(1,8)]},
 #               {"uid":12252, "interval":"5s", "locations":[(9,6)]}]
-lte_simulator = LTESimulator([(2,0),(2,2),(0,2)], users_info, logging_level=logging.CRITICAL)
+lte_simulator = LTESimulator([(0,10),(10,0),(0,-10),(-10,0)], users_info, logging_level=logging.WARNING)
 lte_simulator.topology_configuration()
-time.sleep(2)
+time.sleep(3)
 logging.info("------------------Starting the simulation----------------")
 lte_simulator.start_simulation(scenarios)

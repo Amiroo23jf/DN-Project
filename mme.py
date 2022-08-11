@@ -16,6 +16,7 @@ class MME():
         self.distance_db = dict() # saves the distance between a user and an enb in a certain time
         self.enb_sockets = dict()
         self.ue_enb_db = dict()
+        
 
         # simulation timing configurations
         self.sim_started = False
@@ -159,7 +160,7 @@ class MME():
             if (len(enb_distance_list) == len(self.enb_id_port_dict)):
                 logging.debug("MME: Data from all eNodeBs is collected for UE("+str(user_data[0])+") at time " + "{:.2f}".format(user_data[1]))
                 break
-            time.sleep(timeout/10)
+            #time.sleep(timeout/10)
         
         logging.critical("MME: UE("+str(user_data[0])+") is assigned to ENB("+str(best_enb_uid)+") at time " + "{:.2f}".format(user_data[1]) + " with real time " + "{:.2f}".format(time.time() - self.start_time))
         #logging.info("MME: UE("+str(user_data[0])+") is assigned to ENB("+str(best_enb_uid)+") at time " + "{:.2f}".format(user_data[1]))
