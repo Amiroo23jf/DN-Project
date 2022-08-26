@@ -1,3 +1,4 @@
+from sys import excepthook
 import threading
 import socket
 import json
@@ -104,6 +105,7 @@ class eNodeB():
                             logging.critical("ENB("+str(self.uid)+"): The chunk("+str(chunk_num)+") of message from UE("+str(source)+") to UE("+str(dst)+") is buffered")
                         else:
                             self.trans_buffer["lock"].release()
+                            logging.critical("ENB("+str(self.uid)+"): The chunk("+str(chunk_num)+") of message from UE("+str(source)+") to UE("+str(dst)+") should be sent")
                             while ("data_socket" not in self.database[dst].keys()):
                                 time.sleep(0.02)
                             self.send_data_to_user(dst, data_dict.copy())
@@ -120,7 +122,10 @@ class eNodeB():
                     data = data_dict["message"]["data"]
 
                     self.trans_buffer["lock"].acquire()
-                    self.trans_buffer["buffers"][user_id].append(data)
+                    try:
+                        self.trans_buffer["buffers"][user_id].append(data)
+                    except:
+                        print("ENB("+str(self.uid)+"): Error in adding chunk("+str(data["message"]["chunk_num"])+") of UE("+str(user_id)+") ")
                     self.trans_buffer["lock"].release()
                 
                 elif (data_dict["type"] == 13):
@@ -128,6 +133,7 @@ class eNodeB():
                     user_id = data_dict["message"]["uid"]
                     
                     # delivering the buffered data to the user
+                    logging.critical("ENB("+str(self.uid)+"): Handover Completion Message is received for UE(" + str(user_id)+")")
                     threading.Thread(target=self.deliver_buffered_data, args=(user_id, )).start()
 
 
@@ -361,7 +367,10 @@ class eNodeB():
         while True:
 
             # data received from client
-            data = c.recv(1024)
+            try:
+                data = c.recv(1024)
+            except ConnectionResetError:
+                break
             if not data:
                 # the connection was closed
                 logging.debug("ENB("+str(client_uid)+"): Connection with UE("+ str(client_uid)+") is closed")
@@ -389,7 +398,7 @@ class eNodeB():
                 
                 elif (data_dict["type"] == 16):
                     # forward the data to SGW
-                    logging.debug("ENB("+str(self.uid)+"): Data received UE("+str(client_uid)+") is sent to SGW")
+                    logging.critical("ENB("+str(self.uid)+"): Data received UE("+str(client_uid)+") is sent to SGW")
                     self.send_to_sgw(data_dict)
                 
                 

@@ -160,17 +160,49 @@ class LTESimulator():
 
 
         logging.debug("Simulation is started")
-with open("user_info_many_scenarios.json") as file:
+with open("user_info.json") as file:
     users_info_file = json.load(file)
 users_info = []
 for user in users_info_file["users"]:
     users_info.append(users_info_file[user])
 
-with open("scenarios_many_scenarios.json") as file:
+with open("scenarios.json") as file:
     scenarios_file = json.load(file)
 scenarios = []
 for scenario in scenarios_file["scenarios"]:
     scenarios.append(scenarios_file[scenario])
+scenarios[0]["content"] = """              _   
+  __ _  _ __ | |_ 
+ / _` || '__|| __|
+| (_| || |   | |_ 
+ \__,_||_|    \__|
+                                
+ .----------------.  .----------------.  .----------------.
+| .--------------. || .--------------. || .--------------. |
+| |      __      | || |  _______     | || |  _________   | |
+| |     /  \     | || | |_   __ \    | || | |  _   _  |  | |
+| |    / /\ \    | || |   | |__) |   | || | |_/ | | \_|  | |
+| |   / ____ \   | || |   |  __ /    | || |     | |      | |
+| | _/ /    \ \_ | || |  _| |  \ \_  | || |    _| |_     | |
+| ||____|  |____|| || | |____| |___| | || |   |_____|    | |
+| |              | || |              | || |              | |
+| '--------------' || '--------------' || '--------------' |
+ '----------------'  '----------------'  '----------------'
+ _                            
+| |    ___  _ _  ___  _ __    
+| |__ / _ \| '_|/ -_)| '  \   
+|____|\___/|_|  \___||_|_|_|  
+                              
+(_) _ __  ___ _  _  _ __   
+| || '_ \(_-<| || || '  \  
+|_|| .__//__/ \_,_||_|_|_| 
+   |_|                     
+    _       _           
+ __| | ___ | | ___  _ _ 
+/ _` |/ _ \| |/ _ \| '_|
+\__,_|\___/|_|\___/|_|  
+
+"""
 
 # scenarios = [{ "source": "123456",
 #         "dst": "123457",
@@ -200,7 +232,7 @@ for scenario in scenarios_file["scenarios"]:
 # users_info = [{"uid":12252, "interval":"5s", "locations":[(1,5)]}, 
 #               {"uid":76295, "interval":"5s", "locations":[(1,8)]},
 #               {"uid":12252, "interval":"5s", "locations":[(9,6)]}]
-lte_simulator = LTESimulator([(0,10),(10,0),(0,-10),(-10,0)], users_info, logging_level=logging.WARNING)
+lte_simulator = LTESimulator([(0,10),(15,0),(10,-15),(-10,-15), (-15, 0)], users_info, logging_level=logging.WARNING)
 lte_simulator.topology_configuration()
 time.sleep(3)
 logging.info("------------------Starting the simulation----------------")

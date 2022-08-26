@@ -202,13 +202,15 @@ class UE():
 
     def handle_data_channel(self):
         '''Handles the messages received from the data channel'''
-        self.data_socket["socket"].settimeout(3)
+        self.data_socket["socket"].settimeout(2)
         while True:
             # check if data channel should be closed 
             self.close_connection_lock.acquire()
             if (self.close_connection):
                 # close the socket
+                self.data_socket["lock"].acquire()
                 self.data_socket["socket"].close()
+                self.data_socket["lock"].release()
 
                 # set the close connection to False which means that this channel is successfully closed
                 self.close_connection = False
@@ -223,7 +225,10 @@ class UE():
 
             ########### write receiver ###########
             try:
-                data = self.data_socket["socket"].recv(1024)
+                if (self.data_socket["socket"]._closed == False):
+                    data = self.data_socket["socket"].recv(1024)
+                else:
+                    data = None
             except socket.timeout:
                 continue
 
@@ -255,26 +260,32 @@ class UE():
                     # adding the chunk to the session chunk
                     if session not in self.session_chunks.keys():
                         self.session_chunks[session] = [(chunk_num, chunk)]
+                        logging.critical("UE("+str(self.uid)+"): chunk("+str(chunk_num)+") is received:\n '"+chunk+"'")
                         stick_chunks_thread = threading.Thread(target=self.chunk_stickng, args=(session, last_chunk))
                         stick_chunks_thread.start()
                     else:
                         try:
+                            logging.critical("UE("+str(self.uid)+"): chunk("+str(chunk_num)+") is received:\n '"+chunk+"'")
                             self.session_chunks[session].append([chunk_num, chunk])
+
                         except:
                             pass
                     
     def chunk_stickng(self, session, last_chunk):
         '''Sticks the chunks of the same session together'''
-        TIMEOUT = 6
+        TIMEOUT = 10
         start_time = time.time()
         chunk_len = 1
         while True:
-            if ((len(self.session_chunks[session]) == chunk_len)and (time.time() > start_time + TIMEOUT)):
-                break
-            else:
-                chunk_len = len(self.session_chunks[session])
-                if (chunk_len == last_chunk + 1):
+            if ((time.time() > start_time + TIMEOUT)):
+                if((len(self.session_chunks[session]) == chunk_len)):
                     break
+                else:
+                    chunk_len = len(self.session_chunks[session])
+                    #print(chunk_len)
+                    start_time = time.time()
+                    if (chunk_len == last_chunk + 1):
+                        break
         
         self.session_chunks[session].sort(key=lambda x: x[0])
         content = ""
@@ -342,7 +353,7 @@ class UE():
             self.data_socket["socket"].sendall(msg_json.encode("utf-8"))
             self.data_socket["lock"].release()
             time.sleep(0.03)
-            logging.debug("UE("+str(self.uid)+"): Sending chunk("+str(i)+") to UE("+str(dst)+")")
+            logging.critical("UE("+str(self.uid)+"): Sending chunk("+str(i)+") to UE("+str(dst)+")")
 
 
 
